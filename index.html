@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>360° Evaluation Dashboard — Software Testing Team</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --card: #1e2333;
+  --card-hover: #242840;
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.14);
+  --text: #f0f2f8;
+  --text-2: #9ba3c0;
+  --text-3: #5c6484;
+  --accent: #5b6af5;
+  --accent-glow: rgba(91,106,245,0.18);
+  --accent-light: #7c8cf8;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.1);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.1);
+  --blue: #3b82f6;
+  --blue-bg: rgba(59,130,246,0.1);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --mono: 'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.main{margin-left:220px;flex:1;padding:0;min-width:0}
+
+/* ── SIDEBAR ── */
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:600;color:var(--text);line-height:1.2}
+.logo-sub{font-size:10px;color:var(--text-3);margin-top:1px}
+
+.sidebar-section{padding:12px 10px 4px;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:1px 8px;border-radius:var(--radius);color:var(--text-2);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 16px);text-align:left}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:var(--accent-glow);color:var(--accent-light);font-weight:500}
+.nav-item.active svg{opacity:1}
+
+.level-tabs-side{padding:8px;flex:1;overflow-y:auto}
+.ltab{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:2px;border-radius:var(--radius);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;color:var(--text-2);font-size:13px;font-family:inherit}
+.ltab:hover{background:var(--card);color:var(--text)}
+.ltab.active{background:var(--accent-glow);color:var(--accent-light);font-weight:500}
+.ltab .badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--card);color:var(--text-3);min-width:24px;text-align:center}
+.ltab.active .badge{background:rgba(91,106,245,0.25);color:var(--accent-light)}
+
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(15,17,23,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.topbar-left{display:flex;flex-direction:column;gap:1px}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:11px;color:var(--text-3)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 12px}
+.search-box svg{width:14px;height:14px;color:var(--text-3);flex-shrink:0}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:180px}
+.search-box input::placeholder{color:var(--text-3)}
+.btn{font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--border-strong);background:var(--card);color:var(--text-2);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--card-hover);color:var(--text)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{background:var(--accent-light);color:#fff}
+
+/* ── CONTENT AREA ── */
+.content{padding:20px 24px}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.section-title{font-size:18px;font-weight:600;color:var(--text)}
+.section-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+.level-indicator{font-size:12px;padding:4px 12px;border-radius:20px;background:var(--accent-glow);color:var(--accent-light);font-weight:500;border:1px solid rgba(91,106,245,0.3)}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .18s;border-radius:inherit}
+.kpi-card:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.kpi-card.active{border-color:var(--accent);background:var(--accent-glow)}
+.kpi-card.kc-prom{--kc:#a855f7}
+.kpi-card.kc-exc{--kc:#22c55e}
+.kpi-card.kc-meet{--kc:#3b82f6}
+.kpi-card.kc-imp{--kc:#f59e0b}
+.kpi-card.kc-pip{--kc:#ef4444}
+.kpi-card.kc-pen{--kc:#64748b}
+.kpi-card.active{border-color:var(--kc,var(--accent));background:rgba(var(--kc,91,106,245),.08)}
+.kpi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;background:var(--kc,var(--accent-glow))}
+.kpi-icon svg{width:16px;height:16px;color:#fff}
+.kpi-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:500}
+.kpi-val{font-size:26px;font-weight:600;color:var(--text);font-family:var(--mono);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text-3);margin-top:4px}
+.kpi-trend{font-size:11px;font-weight:500;margin-top:3px}
+.trend-up{color:var(--green)}.trend-down{color:var(--red)}.trend-neu{color:var(--text-3)}
+
+/* ── CHARTS ROW ── */
+.charts-row{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:18px}
+
+/* ── CARD ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px}
+.card-title{font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.chart-wrap{position:relative;width:100%}
+
+/* ── AREA BARS ── */
+.area-tabs{display:flex;gap:4px;margin-bottom:12px}
+.atab{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text-3);cursor:pointer;font-family:inherit;transition:all .15s}
+.atab:hover{border-color:var(--border-strong);color:var(--text-2)}
+.atab.active{background:var(--accent-glow);border-color:rgba(91,106,245,.4);color:var(--accent-light)}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
+.bar-row:hover{background:var(--card-hover)}
+.bar-label{font-size:11px;color:var(--text-2);width:140px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-score{width:28px;font-size:11px;font-weight:600;color:var(--text);text-align:right;font-family:var(--mono)}
+
+/* ── REC CARDS ── */
+.rec-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.rec-card{border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .18s;border:1px solid transparent}
+.rec-card:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.1)}
+.rc-prom{background:var(--purple-bg);border-color:rgba(168,85,247,.2)}
+.rc-exc{background:var(--green-bg);border-color:rgba(34,197,94,.2)}
+.rc-meet{background:var(--blue-bg);border-color:rgba(59,130,246,.2)}
+.rc-imp{background:var(--amber-bg);border-color:rgba(245,158,11,.2)}
+.rc-pip{background:var(--red-bg);border-color:rgba(239,68,68,.2)}
+.rc-pen{background:rgba(100,116,139,.08);border-color:rgba(100,116,139,.2)}
+.rc-num{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:4px}
+.rc-prom .rc-num{color:var(--purple)}
+.rc-exc .rc-num{color:var(--green)}
+.rc-meet .rc-num{color:var(--blue)}
+.rc-imp .rc-num{color:var(--amber)}
+.rc-pip .rc-num{color:var(--red)}
+.rc-pen .rc-num{color:#64748b}
+.rc-label{font-size:12px;font-weight:500;color:var(--text)}
+.rc-sub{font-size:10px;color:var(--text-3);margin-top:2px}
+
+/* ── MEMBER TABLE ── */
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:18px}
+.table-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.filter-pills{display:flex;gap:5px;flex-wrap:wrap}
+.fpill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text-3);cursor:pointer;font-family:inherit;transition:all .15s}
+.fpill:hover{border-color:var(--border-strong);color:var(--text-2)}
+.fpill.active{background:var(--accent-glow);border-color:rgba(91,106,245,.4);color:var(--accent-light)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{border-bottom:1px solid var(--border)}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text-2)}
+th.sorted{color:var(--accent-light)}
+th .sort-icon{margin-left:4px;opacity:.5}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:hover td{background:var(--card-hover)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.selected td{background:rgba(91,106,245,.08)}
+
+.score-ring{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;font-size:11px;font-weight:700;border:2px solid;font-family:var(--mono)}
+.sr-prom{border-color:var(--purple);color:var(--purple)}
+.sr-exc{border-color:var(--green);color:var(--green)}
+.sr-meet{border-color:var(--blue);color:var(--blue)}
+.sr-imp{border-color:var(--amber);color:var(--amber)}
+.sr-pip{border-color:var(--red);color:var(--red)}
+.sr-pen{border-color:var(--text-3);color:var(--text-3)}
+
+.pill{display:inline-block;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.p-prom{background:var(--purple-bg);color:var(--purple)}
+.p-exc{background:var(--green-bg);color:var(--green)}
+.p-meet{background:var(--blue-bg);color:var(--blue)}
+.p-imp{background:var(--amber-bg);color:var(--amber)}
+.p-pip{background:var(--red-bg);color:var(--red)}
+.p-pen{background:rgba(100,116,139,.12);color:#64748b}
+
+.action-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-3);cursor:pointer;font-family:inherit;transition:all .12s}
+.action-btn:hover{border-color:var(--accent);color:var(--accent-light)}
+
+.table-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tf-count{font-size:11px;color:var(--text-3)}
+
+/* ── DETAIL PANEL ── */
+.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.detail-overlay.open{opacity:1;pointer-events:all}
+.detail-drawer{position:fixed;right:0;top:0;bottom:0;width:480px;background:var(--surface);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+.detail-drawer.open{transform:translateX(0)}
+.drawer-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2}
+.drawer-close{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .12s}
+.drawer-close:hover{background:var(--card);color:var(--text)}
+.drawer-avatar{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-bottom:10px}
+.drawer-name{font-size:17px;font-weight:600;color:var(--text);margin-bottom:2px}
+.drawer-meta{font-size:12px;color:var(--text-3)}
+.drawer-body{padding:18px 20px}
+.d-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.d-kpi{background:var(--card);border-radius:var(--radius);padding:12px;text-align:center;border:1px solid var(--border)}
+.d-kv{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.d-kl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.d-section-title{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.d-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.d-bar-label{font-size:11px;color:var(--text-2);width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-bar-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.d-bar-fill{height:100%;border-radius:3px}
+.d-bar-score{width:28px;font-size:11px;font-weight:600;color:var(--text);font-family:var(--mono);text-align:right}
+.drawer-actions{display:flex;gap:8px;flex-wrap:wrap;padding:16px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--surface)}
+
+/* ── LEGEND ── */
+.legend-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--text-3);font-size:13px}
+
+/* ── PRINT / EXPORT ── */
+@media print{
+  .sidebar,.topbar,.sidebar,.btn,.detail-overlay,.detail-drawer,.action-btn,.table-footer{display:none!important}
+  .main{margin-left:0}
+  body{background:#fff;color:#111}
+  .card,.kpi-card,.rec-card,.table-card{background:#fff;border:1px solid #ddd;box-shadow:none}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .kpi-strip{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr}
+  .rec-grid{grid-template-columns:repeat(2,1fr)}
+  .detail-drawer{width:100%}
+}
+@media(max-width:600px){
+  .kpi-strip{grid-template-columns:1fr 1fr}
+  .content{padding:14px}
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.18)}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .25s ease forwards}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">QE</div>
+      <div>
+        <div class="logo-text">EvalDash</div>
+        <div class="logo-sub">CMMI Level 3 · 2025</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:8px 8px 0">
+    <div class="sidebar-section" style="padding:12px 6px 8px">Views</div>
+    <button class="nav-item active" onclick="setView('overview',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" onclick="setView('promotion',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 20V10M12 10l-4 4M12 10l4 4"/><path d="M5 4h14" stroke-linecap="round"/></svg>
+      Promotion eligible
+    </button>
+    <button class="nav-item" onclick="setView('improvement',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      Needs improvement
+    </button>
+    <button class="nav-item" onclick="setView('pending',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg>
+      Pending evaluations
+    </button>
+  </div>
+
+  <div class="sidebar-section">Levels</div>
+  <div class="level-tabs-side" id="sidebar-levels">
+    <button class="ltab active" onclick="setLevel('all',this)" data-level="all">All levels <span class="badge" id="cnt-all">60</span></button>
+    <button class="ltab" onclick="setLevel('j1',this)" data-level="j1">Junior 1 <span class="badge" id="cnt-j1">12</span></button>
+    <button class="ltab" onclick="setLevel('j2',this)" data-level="j2">Junior 2 <span class="badge" id="cnt-j2">8</span></button>
+    <button class="ltab" onclick="setLevel('s1',this)" data-level="s1">Senior 1 <span class="badge" id="cnt-s1">15</span></button>
+    <button class="ltab" onclick="setLevel('s2',this)" data-level="s2">Senior 2 <span class="badge" id="cnt-s2">10</span></button>
+    <button class="ltab" onclick="setLevel('ae',this)" data-level="ae">Associate Expert <span class="badge" id="cnt-ae">7</span></button>
+    <button class="ltab" onclick="setLevel('pen',this)" data-level="pen">Pending <span class="badge" id="cnt-pen">8</span></button>
+  </div>
+
+  <div class="sidebar-footer">
+    Software Testing Team<br>Total: 60 members · Q4 2025
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="page-title">360° Evaluation Overview</div>
+      <div class="topbar-sub" id="page-sub">All levels · Click any card or row for details</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search member..." id="search-input" oninput="applyFilters()">
+      </div>
+      <button class="btn" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-accent" id="level-badge-btn">All levels</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- KPI STRIP -->
+    <div class="kpi-strip" id="kpi-strip">
+      <div class="kpi-card kc-prom" onclick="filterByStatus('prom')" id="kc-prom">
+        <div class="kpi-icon" style="background:rgba(168,85,247,.2)"><svg fill="none" stroke="#a855f7" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M12 10l-4 4M12 10l4 4"/><path d="M5 4h14" stroke-linecap="round"/></svg></div>
+        <div class="kpi-label">Promotion eligible</div>
+        <div class="kpi-val" id="kv-prom">9</div>
+        <div class="kpi-sub">Score ≥ 4.5 + tenure ready</div>
+        <div class="kpi-trend trend-up" id="kt-prom">↑ 2 this quarter</div>
+      </div>
+      <div class="kpi-card kc-exc" onclick="filterByStatus('exc')" id="kc-exc">
+        <div class="kpi-icon" style="background:rgba(34,197,94,.2)"><svg fill="none" stroke="#22c55e" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+        <div class="kpi-label">High performers</div>
+        <div class="kpi-val" id="kv-exc">14</div>
+        <div class="kpi-sub">Score ≥ 4.5</div>
+        <div class="kpi-trend trend-up">↑ Avg 4.7 / 5.0</div>
+      </div>
+      <div class="kpi-card kc-meet" onclick="filterByStatus('meet')" id="kc-meet">
+        <div class="kpi-icon" style="background:rgba(59,130,246,.2)"><svg fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="kpi-label">On track</div>
+        <div class="kpi-val" id="kv-meet">18</div>
+        <div class="kpi-sub">Score 3.5 – 4.4</div>
+        <div class="kpi-trend trend-neu">30% of team</div>
+      </div>
+      <div class="kpi-card kc-imp" onclick="filterByStatus('imp')" id="kc-imp">
+        <div class="kpi-icon" style="background:rgba(245,158,11,.2)"><svg fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        <div class="kpi-label">Needs improvement</div>
+        <div class="kpi-val" id="kv-imp">11</div>
+        <div class="kpi-sub">Training plan required</div>
+        <div class="kpi-trend trend-down">↓ Score 2.5 – 3.4</div>
+      </div>
+      <div class="kpi-card kc-pip" onclick="filterByStatus('pip')" id="kc-pip">
+        <div class="kpi-icon" style="background:rgba(239,68,68,.2)"><svg fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>
+        <div class="kpi-label">PIP required</div>
+        <div class="kpi-val" id="kv-pip">0</div>
+        <div class="kpi-sub">Score below 2.5</div>
+        <div class="kpi-trend trend-neu">None this cycle</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Score distribution by level</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="distChart" role="img" aria-label="Stacked bar chart of score distribution per team level"></canvas></div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div>Promotion eligible</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>High performer</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>On track</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Needs improvement</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Pending</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Evaluation areas avg — click a bar</div>
+        <div class="area-tabs">
+          <button class="atab active" onclick="switchAreaTab('lead',this)">Lead criteria</button>
+          <button class="atab" onclick="switchAreaTab('srjr',this)">Sr / Jr criteria</button>
+        </div>
+        <div id="area-bars"></div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATION CARDS -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Action overview — click to filter</div>
+      <div class="rec-grid">
+        <div class="rec-card rc-prom" onclick="filterByStatus('prom')"><div class="rc-num" id="rc-prom">9</div><div class="rc-label">Promotion eligible</div><div class="rc-sub">Score ≥ 4.5 · tenure met</div></div>
+        <div class="rec-card rc-exc" onclick="filterByStatus('exc')"><div class="rc-num" id="rc-exc">14</div><div class="rc-label">High performers</div><div class="rc-sub">Exceeding expectations</div></div>
+        <div class="rec-card rc-meet" onclick="filterByStatus('meet')"><div class="rc-num" id="rc-meet">18</div><div class="rc-label">Meets expectations</div><div class="rc-sub">On track, developing</div></div>
+        <div class="rec-card rc-imp" onclick="filterByStatus('imp')"><div class="rc-num" id="rc-imp">11</div><div class="rc-label">Needs improvement</div><div class="rc-sub">Assign training plan</div></div>
+        <div class="rec-card rc-pip" onclick="filterByStatus('pip')"><div class="rc-num" id="rc-pip">0</div><div class="rc-label">PIP required</div><div class="rc-sub">Score below 2.5</div></div>
+        <div class="rec-card rc-pen" onclick="filterByStatus('pen')"><div class="rc-num" id="rc-pen">8</div><div class="rc-label">Pending evaluation</div><div class="rc-sub">Awaiting data input</div></div>
+      </div>
+    </div>
+
+    <!-- MEMBER TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="filter-pills" id="filter-pills">
+          <button class="fpill active" onclick="setMFilter('all',this)">All</button>
+          <button class="fpill" onclick="setMFilter('prom',this)">Promotion eligible</button>
+          <button class="fpill" onclick="setMFilter('exc',this)">High performer</button>
+          <button class="fpill" onclick="setMFilter('meet',this)">On track</button>
+          <button class="fpill" onclick="setMFilter('imp',this)">Needs improvement</button>
+          <button class="fpill" onclick="setMFilter('pip',this)">PIP</button>
+          <button class="fpill" onclick="setMFilter('pen',this)">Pending</button>
+        </div>
+        <span id="sort-label" style="font-size:11px;color:var(--text-3)">Sort by: Final score ↓</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('id')"># <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('name')">Name <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('level')">Level <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('project')">Project</th>
+              <th onclick="sortBy('lead')">Lead eval <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('srjr')">Sr/Jr eval <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('kpi')">KPI avg <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('final')">Final score <span class="sort-icon">↕</span></th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="mtbody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="tf-count" id="tf-count">Showing 52 of 60 members</span>
+        <button class="btn" onclick="clearFilters()">Clear filters</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="detail-overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-drawer" id="drawer">
+  <div class="drawer-header">
+    <button class="drawer-close" onclick="closeDetail()">✕</button>
+    <div class="drawer-avatar" id="d-avatar">AH</div>
+    <div class="drawer-name" id="d-name">Ahmed Hassan</div>
+    <div class="drawer-meta" id="d-meta">Junior 1 · Project Alpha · Tenure: 18 months</div>
+    <div style="margin-top:8px"><span class="pill" id="d-pill">High performer</span></div>
+  </div>
+  <div class="drawer-body">
+    <div class="d-kpi-row">
+      <div class="d-kpi"><div class="d-kv" id="d-final">—</div><div class="d-kl">Final score</div></div>
+      <div class="d-kpi"><div class="d-kv" id="d-lead-score">—</div><div class="d-kl">Lead eval</div></div>
+      <div class="d-kpi"><div class="d-kv" id="d-srjr-score">—</div><div class="d-kl">Sr/Jr eval</div></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div class="d-section-title">Lead evaluation criteria</div>
+      <div id="d-lead-bars"></div>
+    </div>
+    <div>
+      <div class="d-section-title">Sr / Jr evaluation criteria</div>
+      <div id="d-srjr-bars"></div>
+    </div>
+  </div>
+  <div class="drawer-actions">
+    <button class="btn btn-accent" id="d-action-1">Promotion case</button>
+    <button class="btn" id="d-action-2">Training plan</button>
+    <button class="btn" id="d-action-3">Full report</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = {j1:"Junior 1",j2:"Junior 2",s1:"Senior 1",s2:"Senior 2",ae:"Associate Expert"};
+const STATUS = {prom:"Promotion eligible",exc:"High performer",meet:"On track",imp:"Needs improvement",pip:"PIP required",pen:"Pending"};
+const PILL_CLS = {prom:"p-prom",exc:"p-exc",meet:"p-meet",imp:"p-imp",pip:"p-pip",pen:"p-pen"};
+const SR_CLS   = {prom:"sr-prom",exc:"sr-exc",meet:"sr-meet",imp:"sr-imp",pip:"sr-pip",pen:"sr-pen"};
+const AVATAR_BG = {j1:"#5b6af5",j2:"#7c3aed",s1:"#0ea5e9",s2:"#0891b2",ae:"#059669",pen:"#64748b"};
+const LEAD_AREAS = ["Leadership & people mgmt","Project & delivery mgmt","QA leadership","Agile & delivery","Stakeholder comm."];
+const SRJR_AREAS = ["Test design & coverage","Defect management","Technical skills","Productivity & delivery","Communication","Ownership"];
+const AREA_COLORS = ["#5b6af5","#22c55e","#f59e0b","#a855f7","#3b82f6","#ef4444"];
+
+const raw = [
+  {id:1,name:"Ahmed Hassan",level:"j1",project:"Alpha",lead:4.7,srjr:4.9,kpi:4.8,final:4.8,tenure:18,status:"prom",leadC:[4.8,4.6,4.9,4.7,4.6],srjrC:[5.0,4.8,4.9,4.9,5.0,4.7]},
+  {id:2,name:"Sara El-Sayed",level:"j1",project:"Beta",lead:4.5,srjr:4.6,kpi:4.4,final:4.5,tenure:20,status:"prom",leadC:[4.4,4.5,4.7,4.6,4.3],srjrC:[4.6,4.5,4.7,4.8,4.6,4.4]},
+  {id:3,name:"Karim Adel",level:"j1",project:"Alpha",lead:3.8,srjr:3.9,kpi:3.7,final:3.8,tenure:8,status:"meet",leadC:[3.9,3.7,3.8,3.8,3.9],srjrC:[4.0,3.8,3.7,3.9,3.8,3.9]},
+  {id:4,name:"Nour Ibrahim",level:"j1",project:"Gamma",lead:3.2,srjr:3.1,kpi:3.0,final:3.1,tenure:6,status:"imp",leadC:[3.1,3.3,3.0,3.2,3.1],srjrC:[3.2,3.0,3.1,3.3,3.0,2.9]},
+  {id:5,name:"Hana Mostafa",level:"j1",project:"Beta",lead:4.1,srjr:4.0,kpi:4.2,final:4.1,tenure:11,status:"exc",leadC:[4.2,4.0,4.1,4.0,4.2],srjrC:[4.1,4.0,3.9,4.2,4.0,4.1]},
+  {id:6,name:"Ramy Gamal",level:"j1",project:"Delta",lead:3.5,srjr:3.6,kpi:3.5,final:3.5,tenure:9,status:"meet",leadC:[3.6,3.5,3.4,3.6,3.5],srjrC:[3.7,3.5,3.6,3.4,3.6,3.5]},
+  {id:7,name:"Dina Youssef",level:"j1",project:"Alpha",lead:2.8,srjr:2.9,kpi:2.7,final:2.8,tenure:5,status:"imp",leadC:[2.9,2.7,2.8,2.9,2.6],srjrC:[3.0,2.8,2.7,2.9,2.8,2.7]},
+  {id:8,name:"Tarek Fawzy",level:"j1",project:"Gamma",lead:null,srjr:null,kpi:null,final:null,tenure:4,status:"pen",leadC:[],srjrC:[]},
+  {id:9,name:"Menna Saber",level:"j1",project:"Beta",lead:3.7,srjr:3.8,kpi:3.6,final:3.7,tenure:10,status:"meet",leadC:[3.8,3.6,3.7,3.8,3.7],srjrC:[3.9,3.7,3.8,3.6,3.8,3.7]},
+  {id:10,name:"Ayman Lotfy",level:"j1",project:"Delta",lead:null,srjr:null,kpi:null,final:null,tenure:3,status:"pen",leadC:[],srjrC:[]},
+  {id:11,name:"Ghada Ismail",level:"j1",project:"Alpha",lead:4.3,srjr:4.2,kpi:4.1,final:4.2,tenure:13,status:"exc",leadC:[4.4,4.2,4.3,4.1,4.3],srjrC:[4.3,4.1,4.2,4.3,4.2,4.1]},
+  {id:12,name:"Amr Khalil",level:"j1",project:"Beta",lead:3.9,srjr:4.0,kpi:3.8,final:3.9,tenure:12,status:"meet",leadC:[4.0,3.8,3.9,4.0,3.8],srjrC:[4.1,3.9,4.0,3.8,4.0,3.9]},
+  {id:13,name:"Mariam Nabil",level:"j2",project:"Gamma",lead:4.6,srjr:4.7,kpi:4.5,final:4.6,tenure:22,status:"prom",leadC:[4.7,4.5,4.6,4.7,4.5],srjrC:[4.8,4.6,4.7,4.5,4.7,4.6]},
+  {id:14,name:"Youssef Taha",level:"j2",project:"Alpha",lead:null,srjr:null,kpi:null,final:null,tenure:7,status:"pen",leadC:[],srjrC:[]},
+  {id:15,name:"Layla Ashraf",level:"j2",project:"Beta",lead:3.0,srjr:2.9,kpi:3.1,final:3.0,tenure:9,status:"imp",leadC:[3.1,2.9,3.0,3.1,2.8],srjrC:[3.0,2.8,2.9,3.1,2.9,2.8]},
+  {id:16,name:"Sameh Galal",level:"j2",project:"Delta",lead:4.0,srjr:4.1,kpi:3.9,final:4.0,tenure:14,status:"exc",leadC:[4.1,3.9,4.0,4.1,3.9],srjrC:[4.2,4.0,4.1,3.9,4.1,4.0]},
+  {id:17,name:"Rana Ayman",level:"j2",project:"Gamma",lead:3.6,srjr:3.7,kpi:3.5,final:3.6,tenure:11,status:"meet",leadC:[3.7,3.5,3.6,3.7,3.5],srjrC:[3.8,3.6,3.7,3.5,3.7,3.6]},
+  {id:18,name:"Bassem Nasser",level:"j2",project:"Beta",lead:4.4,srjr:4.5,kpi:4.3,final:4.4,tenure:16,status:"exc",leadC:[4.5,4.3,4.4,4.5,4.3],srjrC:[4.6,4.4,4.5,4.3,4.5,4.4]},
+  {id:19,name:"Sherine Hamed",level:"j2",project:"Alpha",lead:null,srjr:null,kpi:null,final:null,tenure:5,status:"pen",leadC:[],srjrC:[]},
+  {id:20,name:"Walid Emad",level:"j2",project:"Delta",lead:3.3,srjr:3.2,kpi:3.4,final:3.3,tenure:8,status:"imp",leadC:[3.4,3.2,3.3,3.2,3.4],srjrC:[3.3,3.1,3.2,3.4,3.2,3.1]},
+  {id:21,name:"Khaled Samir",level:"s1",project:"Alpha",lead:4.8,srjr:4.9,kpi:4.7,final:4.8,tenure:30,status:"prom",leadC:[4.9,4.7,4.8,4.9,4.7],srjrC:[5.0,4.8,4.9,4.7,4.9,4.8]},
+  {id:22,name:"Eman Reda",level:"s1",project:"Beta",lead:4.2,srjr:4.3,kpi:4.1,final:4.2,tenure:18,status:"exc",leadC:[4.3,4.1,4.2,4.3,4.1],srjrC:[4.4,4.2,4.3,4.1,4.3,4.2]},
+  {id:23,name:"Sherif Osman",level:"s1",project:"Gamma",lead:3.8,srjr:3.9,kpi:3.7,final:3.8,tenure:15,status:"meet",leadC:[3.9,3.7,3.8,3.9,3.7],srjrC:[4.0,3.8,3.9,3.7,3.9,3.8]},
+  {id:24,name:"Mona Farouk",level:"s1",project:"Delta",lead:3.4,srjr:3.3,kpi:3.5,final:3.4,tenure:12,status:"imp",leadC:[3.5,3.3,3.4,3.3,3.5],srjrC:[3.4,3.2,3.3,3.5,3.3,3.2]},
+  {id:25,name:"Hassan Fouad",level:"s1",project:"Alpha",lead:4.5,srjr:4.6,kpi:4.4,final:4.5,tenure:24,status:"prom",leadC:[4.6,4.4,4.5,4.6,4.4],srjrC:[4.7,4.5,4.6,4.4,4.6,4.5]},
+  {id:26,name:"Nadine Magdy",level:"s1",project:"Beta",lead:3.9,srjr:4.0,kpi:3.8,final:3.9,tenure:16,status:"meet",leadC:[4.0,3.8,3.9,4.0,3.8],srjrC:[4.1,3.9,4.0,3.8,4.0,3.9]},
+  {id:27,name:"Tamer El-Badry",level:"s1",project:"Gamma",lead:null,srjr:null,kpi:null,final:null,tenure:10,status:"pen",leadC:[],srjrC:[]},
+  {id:28,name:"Salma Wael",level:"s1",project:"Delta",lead:4.1,srjr:4.2,kpi:4.0,final:4.1,tenure:19,status:"exc",leadC:[4.2,4.0,4.1,4.2,4.0],srjrC:[4.3,4.1,4.2,4.0,4.2,4.1]},
+  {id:29,name:"Ahmed Ragab",level:"s1",project:"Alpha",lead:2.7,srjr:2.8,kpi:2.6,final:2.7,tenure:9,status:"imp",leadC:[2.8,2.6,2.7,2.8,2.6],srjrC:[2.9,2.7,2.8,2.6,2.8,2.7]},
+  {id:30,name:"Ines Shawky",level:"s1",project:"Beta",lead:4.3,srjr:4.4,kpi:4.2,final:4.3,tenure:21,status:"exc",leadC:[4.4,4.2,4.3,4.4,4.2],srjrC:[4.5,4.3,4.4,4.2,4.4,4.3]},
+  {id:31,name:"Omar Mansour",level:"s1",project:"Gamma",lead:3.6,srjr:3.7,kpi:3.5,final:3.6,tenure:13,status:"meet",leadC:[3.7,3.5,3.6,3.7,3.5],srjrC:[3.8,3.6,3.7,3.5,3.7,3.6]},
+  {id:32,name:"Yara Selim",level:"s1",project:"Delta",lead:4.0,srjr:4.1,kpi:3.9,final:4.0,tenure:17,status:"exc",leadC:[4.1,3.9,4.0,4.1,3.9],srjrC:[4.2,4.0,4.1,3.9,4.1,4.0]},
+  {id:33,name:"Osama Fathy",level:"s1",project:"Alpha",lead:null,srjr:null,kpi:null,final:null,tenure:6,status:"pen",leadC:[],srjrC:[]},
+  {id:34,name:"Nada Ramzy",level:"s1",project:"Beta",lead:3.7,srjr:3.8,kpi:3.6,final:3.7,tenure:14,status:"meet",leadC:[3.8,3.6,3.7,3.8,3.6],srjrC:[3.9,3.7,3.8,3.6,3.8,3.7]},
+  {id:35,name:"Hazem Saad",level:"s1",project:"Gamma",lead:4.6,srjr:4.7,kpi:4.5,final:4.6,tenure:26,status:"prom",leadC:[4.7,4.5,4.6,4.7,4.5],srjrC:[4.8,4.6,4.7,4.5,4.7,4.6]},
+  {id:36,name:"Fatima Kamal",level:"s2",project:"Alpha",lead:4.7,srjr:4.8,kpi:4.6,final:4.7,tenure:36,status:"prom",leadC:[4.8,4.6,4.7,4.8,4.6],srjrC:[4.9,4.7,4.8,4.6,4.8,4.7]},
+  {id:37,name:"Mahmoud Zaki",level:"s2",project:"Beta",lead:4.3,srjr:4.4,kpi:4.2,final:4.3,tenure:28,status:"exc",leadC:[4.4,4.2,4.3,4.4,4.2],srjrC:[4.5,4.3,4.4,4.2,4.4,4.3]},
+  {id:38,name:"Amira Hassan",level:"s2",project:"Gamma",lead:3.9,srjr:4.0,kpi:3.8,final:3.9,tenure:22,status:"meet",leadC:[4.0,3.8,3.9,4.0,3.8],srjrC:[4.1,3.9,4.0,3.8,4.0,3.9]},
+  {id:39,name:"Ziad Abdallah",level:"s2",project:"Delta",lead:3.2,srjr:3.1,kpi:3.3,final:3.2,tenure:14,status:"imp",leadC:[3.3,3.1,3.2,3.1,3.3],srjrC:[3.2,3.0,3.1,3.3,3.1,3.0]},
+  {id:40,name:"Lobna Samy",level:"s2",project:"Alpha",lead:4.5,srjr:4.6,kpi:4.4,final:4.5,tenure:33,status:"prom",leadC:[4.6,4.4,4.5,4.6,4.4],srjrC:[4.7,4.5,4.6,4.4,4.6,4.5]},
+  {id:41,name:"Samir Badr",level:"s2",project:"Beta",lead:4.1,srjr:4.2,kpi:4.0,final:4.1,tenure:25,status:"exc",leadC:[4.2,4.0,4.1,4.2,4.0],srjrC:[4.3,4.1,4.2,4.0,4.2,4.1]},
+  {id:42,name:"Reem Farid",level:"s2",project:"Gamma",lead:null,srjr:null,kpi:null,final:null,tenure:11,status:"pen",leadC:[],srjrC:[]},
+  {id:43,name:"Mohamed Nour",level:"s2",project:"Delta",lead:3.6,srjr:3.7,kpi:3.5,final:3.6,tenure:18,status:"meet",leadC:[3.7,3.5,3.6,3.7,3.5],srjrC:[3.8,3.6,3.7,3.5,3.7,3.6]},
+  {id:44,name:"Amal Ezz",level:"s2",project:"Alpha",lead:4.4,srjr:4.5,kpi:4.3,final:4.4,tenure:30,status:"exc",leadC:[4.5,4.3,4.4,4.5,4.3],srjrC:[4.6,4.4,4.5,4.3,4.5,4.4]},
+  {id:45,name:"Samy Adly",level:"s2",project:"Beta",lead:3.8,srjr:3.9,kpi:3.7,final:3.8,tenure:20,status:"meet",leadC:[3.9,3.7,3.8,3.9,3.7],srjrC:[4.0,3.8,3.9,3.7,3.9,3.8]},
+  {id:46,name:"Dalia Omar",level:"ae",project:"Alpha",lead:4.9,srjr:4.8,kpi:4.9,final:4.9,tenure:48,status:"prom",leadC:[5.0,4.8,4.9,4.9,4.8],srjrC:[4.9,4.7,4.8,4.9,4.8,4.7]},
+  {id:47,name:"Wael Mahmoud",level:"ae",project:"Gamma",lead:4.5,srjr:4.6,kpi:4.4,final:4.5,tenure:40,status:"prom",leadC:[4.6,4.4,4.5,4.6,4.4],srjrC:[4.7,4.5,4.6,4.4,4.6,4.5]},
+  {id:48,name:"Alia Sherif",level:"ae",project:"Beta",lead:4.2,srjr:4.3,kpi:4.1,final:4.2,tenure:36,status:"exc",leadC:[4.3,4.1,4.2,4.3,4.1],srjrC:[4.4,4.2,4.3,4.1,4.3,4.2]},
+  {id:49,name:"Kamal Sedky",level:"ae",project:"Delta",lead:3.8,srjr:3.9,kpi:3.7,final:3.8,tenure:30,status:"meet",leadC:[3.9,3.7,3.8,3.9,3.7],srjrC:[4.0,3.8,3.9,3.7,3.9,3.8]},
+  {id:50,name:"Noura Adel",level:"ae",project:"Alpha",lead:null,srjr:null,kpi:null,final:null,tenure:28,status:"pen",leadC:[],srjrC:[]},
+  {id:51,name:"Taha El-Banna",level:"ae",project:"Beta",lead:4.0,srjr:4.1,kpi:3.9,final:4.0,tenure:32,status:"exc",leadC:[4.1,3.9,4.0,4.1,3.9],srjrC:[4.2,4.0,4.1,3.9,4.1,4.0]},
+  {id:52,name:"Heba Fouad",level:"ae",project:"Gamma",lead:3.5,srjr:3.6,kpi:3.4,final:3.5,tenure:26,status:"meet",leadC:[3.6,3.4,3.5,3.6,3.4],srjrC:[3.7,3.5,3.6,3.4,3.6,3.5]},
+];
+
+let currentLevel = 'all';
+let currentMFilter = 'all';
+let currentSort = {key:'final',dir:-1};
+let currentAreaTab = 'lead';
+let distChartInst = null;
+
+function getLevelData(){
+  if(currentLevel==='all') return raw;
+  if(currentLevel==='pen') return raw.filter(m=>m.status==='pen');
+  return raw.filter(m=>m.level===currentLevel);
+}
+
+function getTableData(){
+  let data = getLevelData();
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  if(q) data = data.filter(m=>m.name.toLowerCase().includes(q)||m.project.toLowerCase().includes(q));
+  if(currentMFilter!=='all') data = data.filter(m=>m.status===currentMFilter);
+  data = [...data].sort((a,b)=>{
+    const av = a[currentSort.key], bv = b[currentSort.key];
+    if(av===null && bv===null) return 0;
+    if(av===null) return 1;
+    if(bv===null) return -1;
+    if(typeof av==='string') return av.localeCompare(bv)*currentSort.dir;
+    return (av-bv)*currentSort.dir;
+  });
+  return data;
+}
+
+function calcStats(data){
+  const counts={prom:0,exc:0,meet:0,imp:0,pip:0,pen:0};
+  data.forEach(m=>counts[m.status]++);
+  return counts;
+}
+
+function setLevel(level, btn){
+  currentLevel=level;
+  currentMFilter='all';
+  document.querySelectorAll('.ltab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const label = level==='all'?'All levels':(level==='pen'?'Pending':(LEVELS[level]||level));
+  document.getElementById('level-badge-btn').textContent=label;
+  document.getElementById('page-sub').textContent=label+' · Click any card or row for details';
+  document.querySelectorAll('.fpill')[0].click();
+  render();
+}
+
+function setView(view, btn){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const viewMap={overview:{filter:'all',title:'360° Evaluation Overview'},promotion:{filter:'prom',title:'Promotion Eligible'},improvement:{filter:'imp',title:'Needs Improvement'},pending:{filter:'pen',title:'Pending Evaluations'}};
+  const v=viewMap[view];
+  document.getElementById('page-title').textContent=v.title;
+  setMFilter(v.filter, document.querySelectorAll('.fpill')[['all','prom','exc','meet','imp','pip','pen'].indexOf(v.filter)]);
+}
+
+function filterByStatus(status){
+  currentMFilter=status;
+  document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('active'));
+  const idx=['all','prom','exc','meet','imp','pip','pen'].indexOf(status);
+  if(idx>=0) document.querySelectorAll('.fpill')[idx]?.classList.add('active');
+  renderTable();
+  document.getElementById('mtbody').closest('.table-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function setMFilter(f, btn){
+  currentMFilter=f;
+  document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderTable();
+}
+
+function applyFilters(){ renderTable(); }
+
+function clearFilters(){
+  currentMFilter='all';
+  document.getElementById('search-input').value='';
+  document.querySelectorAll('.fpill')[0].classList.add('active');
+  document.querySelectorAll('.fpill').forEach((b,i)=>b.classList.toggle('active',i===0));
+  renderTable();
+}
+
+function sortBy(key){
+  if(currentSort.key===key) currentSort.dir*=-1;
+  else{ currentSort.key=key; currentSort.dir=-1; }
+  document.getElementById('sort-label').textContent='Sort: '+key+' '+(currentSort.dir>0?'↑':'↓');
+  renderTable();
+}
+
+function render(){
+  const data = getLevelData();
+  const stats = calcStats(data);
+  document.getElementById('kv-prom').textContent=stats.prom;
+  document.getElementById('kv-exc').textContent=stats.exc;
+  document.getElementById('kv-meet').textContent=stats.meet;
+  document.getElementById('kv-imp').textContent=stats.imp;
+  document.getElementById('kv-pip').textContent=stats.pip;
+  document.getElementById('rc-prom').textContent=stats.prom;
+  document.getElementById('rc-exc').textContent=stats.exc;
+  document.getElementById('rc-meet').textContent=stats.meet;
+  document.getElementById('rc-imp').textContent=stats.imp;
+  document.getElementById('rc-pip').textContent=stats.pip;
+  document.getElementById('rc-pen').textContent=stats.pen;
+  renderDistChart(data);
+  renderAreaBars(data);
+  renderTable();
+  // update tab counts
+  const levelKeys=['all','j1','j2','s1','s2','ae','pen'];
+  levelKeys.forEach(k=>{
+    const cnt=k==='all'?raw.length:(k==='pen'?raw.filter(m=>m.status==='pen').length:raw.filter(m=>m.level===k).length);
+    const el=document.getElementById('cnt-'+k);
+    if(el) el.textContent=cnt;
+  });
+}
+
+function renderDistChart(data){
+  const ctx=document.getElementById('distChart');
+  if(distChartInst) distChartInst.destroy();
+  const levels=currentLevel==='all'?['j1','j2','s1','s2','ae']:([currentLevel]==='pen'?[]:([currentLevel]));
+  const labels=levels.map(l=>LEVELS[l]||l);
+  const statusKeys=['prom','exc','meet','imp','pen'];
+  const colors=['#a855f7','#22c55e','#3b82f6','#f59e0b','#475569'];
+  const datasets=statusKeys.map((s,i)=>({
+    label:STATUS[s],
+    data:levels.map(l=>data.filter(m=>m.level===l&&m.status===s).length),
+    backgroundColor:colors[i],
+  }));
+  distChartInst=new Chart(ctx,{
+    type:'bar',
+    data:{labels:labels.length?labels:['All'],datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#1e2333',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#f0f2f8',bodyColor:'#9ba3c0'}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'#5c6484',font:{size:11}}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#5c6484',font:{size:11},stepSize:2},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function renderAreaBars(data){
+  const scored=data.filter(m=>m.final!==null);
+  const areas = currentAreaTab==='lead'
+    ? LEAD_AREAS.map((l,i)=>({label:l,score:scored.length?scored.map(m=>m.leadC[i]||0).reduce((a,b)=>a+b,0)/scored.length:0,color:AREA_COLORS[i]}))
+    : SRJR_AREAS.map((l,i)=>({label:l,score:scored.length?scored.map(m=>m.srjrC[i]||0).reduce((a,b)=>a+b,0)/scored.length:0,color:AREA_COLORS[i]}));
+  document.getElementById('area-bars').innerHTML=areas.map(a=>`
+    <div class="bar-row" title="Click for ${a.label} breakdown">
+      <div class="bar-label">${a.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(a.score/5*100).toFixed(1)}%;background:${a.color}"></div></div>
+      <div class="bar-score">${a.score.toFixed(1)}</div>
+    </div>`).join('');
+}
+
+function switchAreaTab(tab,btn){
+  currentAreaTab=tab;
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAreaBars(getLevelData());
+}
+
+function renderTable(){
+  const data=getTableData();
+  const tbody=document.getElementById('mtbody');
+  if(!data.length){
+    tbody.innerHTML='<tr><td colspan="10" class="empty">No members match this filter.</td></tr>';
+  } else {
+    tbody.innerHTML=data.map(m=>{
+      const p=PILL_CLS[m.status]||'p-pen';
+      const sr=SR_CLS[m.status]||'sr-pen';
+      const fs=m.final!==null?m.final.toFixed(1):'—';
+      return `<tr onclick="openDetail(${m.id})" title="Click to view ${m.name}'s full breakdown">
+        <td style="color:var(--text-3);font-family:var(--mono)">${m.id}</td>
+        <td style="font-weight:500">${m.name}</td>
+        <td style="color:var(--text-2)">${LEVELS[m.level]||'—'}</td>
+        <td style="color:var(--text-3)">Project ${m.project}</td>
+        <td style="text-align:center;font-family:var(--mono)">${m.lead!==null?m.lead.toFixed(1):'—'}</td>
+        <td style="text-align:center;font-family:var(--mono)">${m.srjr!==null?m.srjr.toFixed(1):'—'}</td>
+        <td style="text-align:center;font-family:var(--mono)">${m.kpi!==null?m.kpi.toFixed(1):'—'}</td>
+        <td style="text-align:center"><div class="score-ring ${sr}">${fs}</div></td>
+        <td><span class="pill ${p}">${STATUS[m.status]}</span></td>
+        <td><button class="action-btn" onclick="event.stopPropagation();openDetail(${m.id})">View →</button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('tf-count').textContent=`Showing ${data.length} of ${getLevelData().length} members`;
+}
+
+function openDetail(id){
+  const m=raw.find(x=>x.id===id);
+  if(!m) return;
+  const initials=m.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  const av=document.getElementById('d-avatar');
+  av.textContent=initials;
+  av.style.background=AVATAR_BG[m.level]||'#5b6af5';
+  document.getElementById('d-name').textContent=m.name;
+  document.getElementById('d-meta').textContent=`${LEVELS[m.level]||'—'} · Project ${m.project} · Tenure: ${m.tenure} months`;
+  const pill=document.getElementById('d-pill');
+  pill.className='pill '+(PILL_CLS[m.status]||'p-pen');
+  pill.textContent=STATUS[m.status];
+  document.getElementById('d-final').textContent=m.final!==null?m.final.toFixed(1):'—';
+  document.getElementById('d-lead-score').textContent=m.lead!==null?m.lead.toFixed(1):'—';
+  document.getElementById('d-srjr-score').textContent=m.srjr!==null?m.srjr.toFixed(1):'—';
+
+  document.getElementById('d-lead-bars').innerHTML=m.leadC.length
+    ?LEAD_AREAS.map((l,i)=>`<div class="d-bar-row"><div class="d-bar-label">${l}</div><div class="d-bar-track"><div class="d-bar-fill" style="width:${(m.leadC[i]/5*100).toFixed(1)}%;background:${AREA_COLORS[i%AREA_COLORS.length]}"></div></div><div class="d-bar-score">${m.leadC[i].toFixed(1)}</div></div>`).join('')
+    :'<div style="font-size:12px;color:var(--text-3);padding:.5rem 0">No data entered yet</div>';
+
+  document.getElementById('d-srjr-bars').innerHTML=m.srjrC.length
+    ?SRJR_AREAS.map((l,i)=>`<div class="d-bar-row"><div class="d-bar-label">${l}</div><div class="d-bar-track"><div class="d-bar-fill" style="width:${(m.srjrC[i]/5*100).toFixed(1)}%;background:${AREA_COLORS[i%AREA_COLORS.length]}"></div></div><div class="d-bar-score">${m.srjrC[i].toFixed(1)}</div></div>`).join('')
+    :'<div style="font-size:12px;color:var(--text-3);padding:.5rem 0">No data entered yet</div>';
+
+  const isPromo=m.status==='prom';
+  const isImp=m.status==='imp'||m.status==='pip';
+  document.getElementById('d-action-1').textContent=isPromo?'Download promotion case':'View score breakdown';
+  document.getElementById('d-action-2').textContent=isImp?'Generate training plan':'Export PDF report';
+  document.getElementById('d-action-3').textContent='Full evaluation report';
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function exportCSV(){
+  const data=getTableData();
+  const headers=['ID','Name','Level','Project','Lead Eval','SrJr Eval','KPI Avg','Final Score','Status','Tenure (months)'];
+  const rows=data.map(m=>[m.id,m.name,LEVELS[m.level]||'','Project '+m.project,m.lead??'',m.srjr??'',m.kpi??'',m.final??'',STATUS[m.status],m.tenure]);
+  const csv=[headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='eval-dashboard-export.csv';
+  a.click();
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDetail(); });
+render();
+</script>
+</body>
+</html>
